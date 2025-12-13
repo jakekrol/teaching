@@ -1,0 +1,10 @@
+name: teaching_pylibs
+channels:
+  - conda-forge
+dependencies:
+  - pandas
+  - scipy
+  - jupyterlab
+  - notebook
+  - matplotlib
+  - scikit-learn
