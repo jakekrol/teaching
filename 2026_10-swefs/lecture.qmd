@@ -1,0 +1,441 @@
+---
+title: "SWEFS: Python libraries"
+author: "Jacob Krol"
+format:
+  revealjs:
+    css: theme.scss
+---
+
+## Why libraries?
+
+:::{.center}
+Code re-use
+:::
+
+![](./img/recycle-solid.png){fig-align="center" width="80%"}
+
+## When use libraries?
+
+<br>
+
+:::{.center}
+Code already exists to solve problem
+
+- Tabular data analysis
+- Plotting
+
+
+:::{.small}
+![](./img/pandas.png){fig-align="center" width="400px"}
+
+![](./img/matplotlib.png){fig-align="center" width="400px"}
+
+:::
+:::
+
+## Library utility function
+
+<br>
+
+<br>
+
+:::{.center}
+$$
+\text{utility}_{\text{library}} = f(\text{trust}\uparrow, \text{time}\downarrow, \text{necessity}\uparrow)
+$$
+:::
+
+## When develop library
+
+<br>
+
+:::{.center}
+- Expect high re-use
+- No existing solutions
+- Existing solutions have problems: missing feature, slow, etc.
+- Learning; libraries abstract algorithms and data structures away from user
+- Examples: [CLI game](https://github.com/jakekrol/aibou), [Compbio](https://github.com/jakekrol/jkbiolib), [Gene fusions](https://github.com/jakekrol/genefusion)
+:::
+
+## How develop library?
+
+:::{.center}
+You are probably already writing library code
+
+- Functions and classes are primary library components
+- Start small: file = "module"
+- Group similar code: directory = "package"
+- Group multi-directory code: directories = "library"
+:::
+
+## Library is a code hierarchy
+
+<br>
+
+<br>
+
+![](./img/library-tree-diagram.png){fig-align="center"}
+
+## Table of contents
+
+<br>
+
+:::{.center}
+- [Numpy](#numpy)
+- [Pandas](#pandas)
+- [Matplotlib](#matplotlib)
+- [Scikit-learn](#scikit-learn)
+- [Torch](#torch)
+:::
+
+## Numpy
+
+<br>
+
+:::{.center}
+Arrays & random number generation
+:::
+
+<br>
+
+:::{.small}
+![](./img/numpy.png){fig-align="center" width="400px"}
+:::
+
+## Basics
+
+<br>
+
+<br>
+
+``` python
+x = np.array([1,2,3,4]) # init
+x ** 2 # operate
+print(x.shape, x.ndim) # inspect shape
+np.save("data.npy", x) # write, use npz for multiple arrays
+np.load("data.npy") # read
+```
+
+
+## Comparing vectors
+
+:::{.center}
+:::{.small}
+
+
+``` python
+import numpy as np; import pandas as pd; np.random.seed(0)
+m=10000
+def distance(a,b):
+    d_euc = np.linalg.norm(a - b, ord=None) # 2-norm: preserves units (e.g., meters)
+    d_cos = 1 - ( np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)) ) # cosine: unit less. normalized to [0,1].
+    d_inf = np.linalg.norm(a-b,ord=np.inf) # infinity norm: preserves units. worst case analysis
+    return d_euc, d_cos, d_inf
+### weak approximation (n small, pr large)
+trials1,pr_success1 = (50,0.90)
+a = np.random.binomial(n=trials1,p=pr_success1,size=m) # is sunny CO day? independence assumed
+lam1 = trials1 * pr_success1
+b = np.random.poisson(lam=lam1,size=m)
+weak = distance(a,b)
+### strong approximation (n large, pr small)
+trials2,pr_success2 = (100_000_000, 0.001) # does experiment succeed?
+a = np.random.binomial(n=trials2,p=pr_success2,size=m)
+lam2 = trials2 * pr_success2
+b = np.random.poisson(lam=lam2,size=m)
+strong = distance(a,b)
+df = pd.DataFrame({'Weak': weak, 'Strong': strong}); df.index = ['Euc', 'Cos', 'Inf']; df = df.T
+df['n'] = [trials1, trials2]; df['p'] = [pr_success1, pr_success2]; df['lamba'] = [lam1,lam2]
+```
+
+|        | Euc      | Cos      | Inf    | n         | p     | lambda |
+|--------|----------|----------|--------|-----------|-------|--------|
+| Weak   | 700.61   | 0.011961 | 28.00  | 50        | 0.900 | 45.0   |
+| Strong | 44447.0  | 0.000010 | 1539.0 | 100000000 | 0.001 | 100000 |
+:::
+:::
+
+## Distance metrics
+
+:::{.center}
+Vector distances are common in optimization
+
+| Metric | Preserves units? | Application |
+|--------|----------|----------|
+| Euclidean ($L_2$) | Yes | clustering (e.g., K-nearest neighbors) |
+| $L_{\infty}$ | Yes | Worst case analysis (e.g., quality control) |
+| Cosine   | No | Normalized similarity (e.g., embeddings of images) |
+:::
+
+## Poisson approximation of binomial
+
+$$
+p(x;\lambda) = \frac{\lambda^x e^{-\lambda}}{x!}
+$$
+
+$$
+p(x;n,p) = \binom{n}{x} p^x (1-p)^{n-x}
+$$
+
+$$
+\lambda \approx np
+$$
+
+
+## Pandas
+
+<br>
+
+:::{.center}
+Tabular data analysis
+:::
+
+<br>
+
+:::{.small}
+![](./img/pandas.png){fig-align="center" width="400px"}
+:::
+
+## Basics
+
+<br>
+
+<br>
+
+```python 
+import pandas as pd
+df_gene = pd.read_csv("data/gene_expression.tsv",sep="\t") # read tsv file to dataframe obj
+df_gene.head(5) # show first 5 rows
+df_gene.iloc[2,4] # locate value (3rd row, 5th column)
+cols_sum=df_gene.columns.tolist()[1:] # get columns
+df_gene['total_expression'] = df_gene[cols_sum].sum(axis=1) # row-wise sum
+```
+
+## Relating two tables
+
+
+<br>
+
+:::{.center}
+
+```python
+import pandas as pd
+# left join two tables with shared key = "sample"
+df_gene = pd.read_csv("data/gene_expression.tsv",sep="\t") # 100 x 1001
+df_sample = pd.read_csv("data/sample_conditions.tsv",sep="\t") # 50 x 5
+df_merge = pd.merge(df_gene, df_sample, how="left", on="sample") # 100 x 1005
+df_merge.isna().sum(axis=0) # NA values per column
+mask = df_merge.isna() # 100 x 1005 bool
+df_merge[mask] = 0 # replace NAs with 0
+df_merge.describe() # column-wise stats: min, q1, median, q3, max, mean, etc.
+```
+
+![](./img/joins.png){fig-align="center" width="50%"}
+
+:::
+
+## Operations applied to sub-groups
+
+<br>
+
+<br>
+
+```python
+import pandas as pd; import seaborn as sns
+df = sns.load_dataset("tips") # total_bill,tip,sex,smoker,day,time,size
+df.groupby('smoker')['tip'].mean() # 2 groups
+df.groupby(['smoker', 'sex'])['tip'].mean() # 4 groups
+# iterate and operate on groups
+tip_percents = dict()
+for key, df_group in df.groupby('smoker'):
+    tip_percents[key] = round((df_group['tip'] / df_group['total_bill']).mean(),4)
+# {'Yes': 0.1632, 'No': 0.1593}
+```
+
+
+
+
+
+
+## Matplotlib
+
+<br>
+
+<br>
+
+
+``` python
+import matplotlib.pyplot as plt; import numpy as np; np.random.seed(0); size=10_000
+x=np.random.binomial(n=100,p=0.5,size=size)
+y= (2 * x) + np.random.normal(0,10, size=size)
+z=np.random.choice([0,1],size=size,replace=True, p=[0.8,0.2])
+plt.scatter(x,y, s=1); plt.show() # interactive, s = dot size
+plt.close() # close figure
+fig, ax = plt.subplots(nrows=1,ncols=2) # multiple plots in a grid
+ax[0].bar(x=[0,1], height = [sum(z==0), sum(z==1)])
+ax[1].hist(x,bins=30)
+plt.savefig("bar-hist.png") # write to file
+plt.close()
+```
+
+## Discrete distributions
+
+:::{.center}
+:::{.small}
+
+``` python
+import matplotlib.pyplot as plt
+import numpy as np
+mean,bins,size=100,30,10000; color='black'
+x_binom=np.random.binomial(n=1000,p=0.1,size=size); smean_binom=np.mean(x_binom)
+x_poisson=np.random.poisson(lam=mean,size=size); smean_poisson=np.mean(x_poisson)
+x_geom=np.random.geometric(p=0.01,size=size); smean_geom=np.mean(x_geom)
+x_uniform=np.random.randint(0,201,size=size); smean_uniform=np.mean(x_uniform)
+fig,ax=plt.subplots(2,2,figsize=(6,4))
+ax[0,0].hist(x_binom,bins=bins,color=color); ax[0,0].axvline(smean_binom,color='red',linestyle='--')
+ax[0,0].set_title(r'Binomial($n=1000,p=0.1$)',loc='left')
+ax[0,1].hist(x_poisson,bins=bins,color=color); ax[0,1].axvline(smean_poisson,color='red',linestyle='--',label='sample mean')
+ax[0,1].set_title('Poisson',loc='left')
+ax[1,0].hist(x_geom,bins=bins,color=color); ax[1,0].axvline(smean_geom,color='red',linestyle='--')
+ax[1,0].set_title('Geometric',loc='left')
+ax[1,1].hist(x_uniform,bins=bins,color=color); ax[1,1].axvline(smean_uniform,color='red',linestyle='--')
+ax[1,1].set_title('Discrete uniform',loc='left')
+fig.legend(loc='upper right'); fig.tight_layout(); fig.savefig('img/discrete_dists.png',dpi=150)
+```
+
+![](./img/discrete_dists.png){fig-align="center" width="40%"}
+
+:::
+:::
+
+## Scikit-learn
+
+<br>
+
+:::{.center}
+Train and evaluate established ML models
+:::
+
+<br>
+
+:::{.small}
+![](./img/scikit-learn.png){fig-align="center" width="400px"}
+:::
+
+## Basics
+
+:::{.small}
+:::{.center}
+
+<br>
+
+``` python
+from sklearn.model_selection import train_test_split;  from sklearn.neighbors import KNeighborsClassifier; from sklearn.metrics import confusion_matrix
+import numpy as np; import pandas as pd; import matplotlib.pyplot as plt; np.random.seed(0)
+ftr_group1 = np.random.poisson(20,size=50) # e.g., BMI
+ftr_group2 = np.random.normal(30,size=50)
+outcome_group1 = np.random.choice([0,1],replace=True,p=[0.9,0.1],size=50) # biased toward 0
+outcome_group2 = np.random.choice([0,1],replace=True,p=[0.1,0.9], size=50) # biased toward 1
+ftr = np.concatenate([ftr_group1, ftr_group2]); outcome = np.concatenate([outcome_group1, outcome_group2])
+x_train, x_test, y_train, y_test = train_test_split(
+    ftr, outcome, test_size=0.2, train_size=0.8, random_state=0, shuffle=True)
+knn = KNeighborsClassifier(n_neighbors=3,algorithm='brute',p=2,metric='minkowski',n_jobs=1)
+knn.fit(x_train.reshape(-1,1),y_train) # .reshape(-1,1) specifies there is only 1 column to be expected; sklearn expects matrix like shape, not vector for features
+y_test_pred = knn.predict(x_test.reshape(-1,1))
+confusion_matrix(y_test,y_test_pred)
+```
+
+<br>
+
+|  | Prediction=0 | Prediction=1 |
+|---|---:|---:|
+| **Truth=0** | 8 | 1 |
+| **Actual=1** | 3 | 8 |
+
+:::
+:::
+
+<!-- # fig,ax = plt.subplots(nrows=1,ncols=2,figsize=(6,4))
+# ax[0].scatter(x_train + np.random.normal(0,0.1), y_train + np.random.normal(0,0.05,size=len(y_train)), color = 'black',s=3)
+# ax[0].set_xlabel("BMI"); ax[0].set_ylabel("Disease"); ax[0].spines['top'].set_visible(False); ax[0].spines['right'].set_visible(False)
+# cmap = {0:'red',1:'black'}
+# ax[1].scatter(x_test + np.random.normal(0,0.1), y_test_pred + np.random.normal(0,0.05,size=len(y_test)), color = [cmap[y_test[i]==y_test_pred[i]] for i in range(len(y_test))],s=3)
+# ax[1].set_xlabel("BMI"); ax[1].set_ylabel("Disease"); ax[1].spines['top'].set_visible(False); ax[0].spines['right'].set_visible(False)
+# plt.tight_layout(); plt.savefig('img/knn_classifier.png') -->
+
+
+
+## Regression
+
+:::{.center}
+:::{.small}
+
+``` python
+from sklearn.linear_model import LinearRegression
+import pandas as pd; import numpy as np; import matplotlib.pyplot as plt
+df = pd.read_csv("data/agrofood_co2_emission.csv")
+years = [2019, 2020]; mask = df['Year'].isin(years); df = df[mask] # i confirmed all remaining areas have both 2019 and 2020 data `df['Area'].value_counts().value_counts()`
+areas_test = set(np.random.choice(df['Area'].unique(),replace=False, size=int( np.floor( len( df['Area'].unique() ) // 4 ) ) ) )
+areas_train = set(df[~df['Area'].isin(areas_test)]['Area'].unique())
+df_test = df[df['Area'].isin(areas_test)]; df_train = df[df['Area'].isin(areas_train)]
+mask = df_test['Year'] == 2020; y_test = df_test[mask]['total_emission']; mask = df_train['Year'] == 2020; y_train = df_train[mask]['total_emission']
+features = list(set(df.columns) - {'Year', 'total_emission', 'Area'})
+mask = df_test['Year'] == 2019; x_test = df_test[mask][features]; mask = df_train['Year'] == 2019; x_train = df_train[mask][features]
+x_test = x_test.fillna(x_train.mean()); x_train = x_train.fillna(x_train.mean()) # use means from train only to fill
+model = LinearRegression().fit(x_train,y_train)
+y_pred = model.predict(x_test)
+mse = sum( (y_test - y_pred)**2 ) / len(y_test); rmse = np.sqrt(mse); r2_train = model.score(x_train,y_train); r2_test = model.score(x_test,y_test)
+fig,ax = plt.subplots(figsize=(6,4))
+ax.scatter(y_test,y_pred, s=2, color='black'); ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False); ax.plot([10**i for i in range(3,8)], [10**i for i in range(3,8)], linestyle='--')
+ax.set_xscale('log'); ax.set_yscale('log'); ax.set_xlabel("Test CO2 emission (2020)"); ax.set_ylabel("Pred. CO2 emission (2020)");
+ax.set_title('Linear regression',loc='left'); plt.tight_layout(); plt.savefig("img/co2_emission_regression.png")
+```
+
+![](./img/co2_emission_regression.png){fig-align="center" width="35%"}
+
+:::
+:::
+
+## Clustering
+
+:::{.center}
+:::{.small}
+
+``` python
+from sklearn.cluster import KMeans
+import pandas as pd; import numpy as np; import matplotlib.pyplot as plt
+df = pd.read_csv("data/agrofood_co2_emission.csv")
+columns = ['Rice Cultivation', 'Fertilizers Manufacturing', 'Year']
+df = df[columns]
+df = df.dropna()
+df = df[df['Year'] == 2020] # 1 area per year
+x = df[['Rice Cultivation', 'Fertilizers Manufacturing']]
+fig,ax = plt.subplots(nrows=1,ncols=3,figsize=(12,4))
+for i,k in enumerate([3,5,7]):
+    model = KMeans(n_clusters=k, init='k-means++')
+    cluster_labels = model.fit_predict(x)
+    ax[i].scatter(x['Rice Cultivation'], x['Fertilizers Manufacturing'], c=cluster_labels, cmap='tab10', s = 1)
+    ax[i].set_xlabel('Rice cultivation emissions (ktons)'); ax[i].set_ylabel('Fertilizers manufacturing emissions (ktons)')
+    ax[i].spines['top'].set_visible(False); ax[i].spines['right'].set_visible(False)
+    ax[i].set_title(f"K={k}"); ax[i].set_xscale('log'); ax[i].set_yscale('log')
+fig.tight_layout(); fig.savefig('img/agriculture_clustering.png')
+```
+
+![](./img/agriculture_clustering.png){fig-align="center" width="70%"}
+
+:::
+:::
+
+
+
+
+
+
+## Torch
+
+
+torch
+
+
+
+
+

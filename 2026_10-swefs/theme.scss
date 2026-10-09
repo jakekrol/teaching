@@ -1,0 +1,24 @@
+.small {
+  font-size: 0.7em;
+}
+.very-small {
+  font-size: 0.4em;
+}
+.reveal img:focus,
+.reveal img:active,
+.reveal a img:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.reveal h2,
+.reveal h3,
+.reveal h4,
+.reveal h5,
+.reveal h6 {
+  text-align: center;
+}
+
+.center {
+  text-align: center;
+}
