@@ -321,7 +321,7 @@ Train and evaluate established ML models
 ![](./img/scikit-learn.png){fig-align="center" width="400px"}
 :::
 
-## Basics
+## Classification 
 
 :::{.small}
 :::{.center}
@@ -370,27 +370,39 @@ confusion_matrix(y_test,y_test_pred)
 :::{.small}
 
 ``` python
+# predict rural population size, given CO2 emissions
 from sklearn.linear_model import LinearRegression
-import pandas as pd; import numpy as np; import matplotlib.pyplot as plt
-df = pd.read_csv("data/agrofood_co2_emission.csv")
+import pandas as pd; import numpy as np; import matplotlib.pyplot as plt; np.random.seed(0)
+df = pd.read_csv("data/agrofood_co2_emission.csv"); TARGET="Rural population"
 years = [2019, 2020]; mask = df['Year'].isin(years); df = df[mask] # i confirmed all remaining areas have both 2019 and 2020 data `df['Area'].value_counts().value_counts()`
 areas_test = set(np.random.choice(df['Area'].unique(),replace=False, size=int( np.floor( len( df['Area'].unique() ) // 4 ) ) ) )
 areas_train = set(df[~df['Area'].isin(areas_test)]['Area'].unique())
 df_test = df[df['Area'].isin(areas_test)]; df_train = df[df['Area'].isin(areas_train)]
-mask = df_test['Year'] == 2020; y_test = df_test[mask]['total_emission']; mask = df_train['Year'] == 2020; y_train = df_train[mask]['total_emission']
-features = list(set(df.columns) - {'Year', 'total_emission', 'Area'})
+mask = df_test['Year'] == 2020; y_test = df_test[mask][TARGET]; mask = df_train['Year'] == 2020; y_train = df_train[mask][TARGET]
+features = list(set(df.columns) - {'Year', TARGET, 'Area', 'Urban population', 'Total Population - Female', 'Total Population - Male', 'Average Temperature °C', 'total_emission'})
 mask = df_test['Year'] == 2019; x_test = df_test[mask][features]; mask = df_train['Year'] == 2019; x_train = df_train[mask][features]
 x_test = x_test.fillna(x_train.mean()); x_train = x_train.fillna(x_train.mean()) # use means from train only to fill
-model = LinearRegression().fit(x_train,y_train)
+model = LinearRegression().fit(x_train,y_train); print(f"# weights: {list(zip(x_train.columns,model.coef_))}")
 y_pred = model.predict(x_test)
 mse = sum( (y_test - y_pred)**2 ) / len(y_test); rmse = np.sqrt(mse); r2_train = model.score(x_train,y_train); r2_test = model.score(x_test,y_test)
-fig,ax = plt.subplots(figsize=(6,4))
-ax.scatter(y_test,y_pred, s=2, color='black'); ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False); ax.plot([10**i for i in range(3,8)], [10**i for i in range(3,8)], linestyle='--')
-ax.set_xscale('log'); ax.set_yscale('log'); ax.set_xlabel("Test CO2 emission (2020)"); ax.set_ylabel("Pred. CO2 emission (2020)");
-ax.set_title('Linear regression',loc='left'); plt.tight_layout(); plt.savefig("img/co2_emission_regression.png")
+fig,ax = plt.subplots(figsize=(5,5))
+ax.scatter(y_test,y_pred, s=2, color='black'); ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False); ax.plot([10**i for i in range(1,10)], [10**i for i in range(1,10)], linestyle='--')
+ax.text(x=0.5,y=0.85,s=f"log10(RMSE)={round(np.log10(round(rmse)), 2)}",transform=ax.transAxes)
+ax.set_xscale('log'); ax.set_yscale('log'); ax.set_xlabel("Test rural pop. (2020)"); ax.set_ylabel("Pred. rural pop. (2020)");
+ax.set_title('Linear regression',loc='left'); plt.tight_layout(); plt.savefig("img/rural_pop_regression.png")
 ```
 
-![](./img/co2_emission_regression.png){fig-align="center" width="35%"}
+::::{.columns}
+:::{.column width="50%"}
+![](./img/rural_pop_regression.png){fig-align="center" width="70%"}
+:::
+:::{.column width="50%"}
+| Feature | Beta |
+|---|---:|
+| On-farm Electricity Use (max) | 2114.4020 |
+| Pesticides Manufacturing (min) | -7646.2649 |
+:::
+::::
 
 :::
 :::
@@ -425,17 +437,91 @@ fig.tight_layout(); fig.savefig('img/agriculture_clustering.png')
 :::
 :::
 
-
-
-
-
-
 ## Torch
 
+:::{.center}
 
-torch
+<br>
 
+Deep learning
 
+:::{.small}
 
+<br>
+
+![](./img/pytorch.png){fig-align="center" width="200px"}
+
+:::
+:::
+
+## Feed-forward NN
+
+:::{.small}
+
+``` python
+# rural pop. regression
+# x_train, x_test, y_train, y_test are from sklearn linear regression code block
+import torch; from torch import nn; from torch.utils.data import TensorDataset, DataLoader
+torch.manual_seed(0); torch.use_deterministic_algorithms(True) # still not deterministic
+x_train = torch.tensor(x_train.values, dtype=torch.float32)
+y_train = torch.tensor(y_train.values, dtype=torch.float32).reshape(-1,1)
+x_test = torch.tensor(x_test.values, dtype=torch.float32)
+y_test = torch.tensor(y_test.values, dtype=torch.float32).reshape(-1,1)
+train_loader=DataLoader(TensorDataset(x_train,y_train), batch_size=x_train.shape[0] // 10, shuffle=True, generator=torch.Generator().manual_seed(0))
+dim_input=x_train.shape[1]; dim_h1 = 5;
+model=torch.nn.Sequential(nn.Linear(dim_input, dim_h1),nn.ReLU(),nn.Linear(dim_h1,1))
+optimizer=torch.optim.Adam(model.parameters(),lr=1e-3)
+loss_fn=nn.MSELoss()
+model.train() # train mode (update weights)
+epoch_losses = []
+for epoch in range(1000):
+    batch_losses = []
+    for x, y in train_loader:
+        optimizer.zero_grad() # reset gradient per batch
+        loss=loss_fn(model(x), y)
+        loss.backward() # compute gradient
+        optimizer.step() # apply weight updates
+        batch_losses.append(loss.item())
+    epoch_losses.append(np.mean(batch_losses))
+# eval mode, no gradients computed
+model.eval()
+with torch.no_grad():
+    y_pred = model(x_test)
+mse = torch.mean((y_test-y_pred)**2).item(); rmse = np.sqrt(mse) # .item() convert tensor scalar to py scalar
+fig,ax = plt.subplots(figsize=(5,5)); ax.scatter(y_test,y_pred, s=2, color='black'); ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False); ax.plot([10**i for i in range(1,10)], [10**i for i in range(1,10)], linestyle='--')
+ax.text(x=0.5,y=0.8,s=f"log10(RMSE)={round(np.log10(round(rmse)),2)}",transform=ax.transAxes)
+transform=ax.transAxes
+ax.set_xscale('log'); ax.set_yscale('log'); ax.set_xlabel("Test rural pop. (2020)"); ax.set_ylabel("Pred. rural pop. (2020)");
+ax.set_title('Feed-forward NN',loc='left'); plt.tight_layout(); plt.savefig("img/rural_pop_regression.ffn.png"); plt.close()
+fig,ax = plt.subplots(figsize=(5,5)); ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False);
+ax.plot(range(len(epoch_losses)), epoch_losses, color='black');
+ax.set_yscale('log'); ax.set_ylim(10**15, 10**17); ax.set_xlabel("Epoch"); ax.set_ylabel("MSE loss"); ax.set_title("Training loss",loc='left'); plt.tight_layout(); plt.savefig("img/rural_pop_regression.ffn.loss.png"); plt.close()
+```
+
+:::
+
+## Feed-forward NN
+<!-- 
+![](./img/rural_pop_regression.png){fig-align="center" width="40%"}
+
+![](./img/rural_pop_regression.ffn.png){fig-align="center"width="40%"}
+
+![](./img/rural_pop_regression.ffn.loss.png){fig-align="center"width="40%"} -->
+
+<br>
+
+<br>
+
+::::{.columns}
+:::{.column width="33%"}
+![](./img/rural_pop_regression.png){fig-align="center"}
+:::
+:::{.column width="33%"}
+![](./img/rural_pop_regression.ffn.png){fig-align="center"}
+:::
+:::{.column width="33%"}
+![](./img/rural_pop_regression.ffn.loss.png){fig-align="center"}
+:::
+::::
 
 
