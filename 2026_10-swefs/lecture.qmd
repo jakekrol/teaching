@@ -37,15 +37,15 @@ Code already exists to solve problem
 
 <br>
 
-<br>
-
 :::{.center}
 $$
 \text{utility}_{\text{library}} = f(\text{trust}\uparrow, \text{time}\downarrow, \text{necessity}\uparrow)
 $$
 :::
 
-## When develop library
+![](./img/pkg_stars.bar.png){fig-align="center" width="80%"}
+
+## When develop library?
 
 <br>
 
@@ -62,13 +62,14 @@ $$
 :::{.center}
 You are probably already writing library code
 
+<br>
+
 - Functions and classes are primary library components
 - Start small: file = "module"
 - Group similar code: directory = "package"
-- Group multi-directory code: directories = "library"
 :::
 
-## Library is a code hierarchy
+## Libraries are composed of modules
 
 <br>
 
@@ -154,6 +155,23 @@ df['n'] = [trials1, trials2]; df['p'] = [pr_success1, pr_success2]; df['lamba'] 
 :::
 :::
 
+
+## Distance metrics
+
+<br>
+
+$$
+L_2=\sqrt{(a_1-b_1)^2 + (a_1-b_1)^2 + \ldots + (a_n-b_n)^2} = ||a-b||_2
+$$
+
+$$
+L_\infty = max_{i\in \{1,\ldots,n\} }{|a_i - b_i|}
+$$
+
+$$
+d_{\text{cos}} = 1 - \frac{a\cdot b}{||a||_2 \cdot ||b||_2}
+$$
+
 ## Distance metrics
 
 :::{.center}
@@ -177,7 +195,7 @@ p(x;n,p) = \binom{n}{x} p^x (1-p)^{n-x}
 $$
 
 $$
-\lambda \approx np
+\text{if } (\lambda = n\cdot p \text{} \land \uparrow n \text{ }\land \downarrow p) \rightarrow p(x; \lambda)  \approx p(x;n,p)
 $$
 
 
@@ -394,7 +412,7 @@ ax.set_title('Linear regression',loc='left'); plt.tight_layout(); plt.savefig("i
 
 ::::{.columns}
 :::{.column width="50%"}
-![](./img/rural_pop_regression.png){fig-align="center" width="70%"}
+![](./img/rural_pop_regression.png){fig-align="center" width="45%"}
 :::
 :::{.column width="50%"}
 | Feature | Beta |
@@ -435,6 +453,22 @@ fig.tight_layout(); fig.savefig('img/agriculture_clustering.png')
 ![](./img/agriculture_clustering.png){fig-align="center" width="70%"}
 
 :::
+:::
+
+## K-means objective
+
+:::{.center}
+
+<br>
+
+Minimize total squared distances to cluster centers
+
+<br>
+
+$$
+\sum_{c\in K} \sum_{i=1}^n ||x_i - \mu_c ||_2^2
+$$
+
 :::
 
 ## Torch
@@ -523,5 +557,39 @@ ax.set_yscale('log'); ax.set_ylim(10**15, 10**17); ax.set_xlabel("Epoch"); ax.se
 ![](./img/rural_pop_regression.ffn.loss.png){fig-align="center"}
 :::
 ::::
+
+## Class activity
+
+:::{.center}
+
+<br>
+
+[Kaggle breast-cancer-gene-expression-profiles-metabric](https://www.kaggle.com/datasets/raghadalharbi/breast-cancer-gene-expression-profiles-metabric)
+
+<br>
+
+Requirements
+
+:::{.small}
+
+- Hypothesis (1 sentence)
+- Use classification, regression, or clustering to test hypothesis
+- 3 analysis figures
+- Link to code and documentation
+- Present?
+
+:::
+:::
+
+
+
+## FCQ
+
+
+![](./img/qrcode.png){fig-align="center"}
+
+<!-- https://docs.google.com/forms/d/e/1FAIpQLScYp0mvAUwnOR4WXg4QdHWcE4ewgCt7LmiVNI3tjQvidQF9mg/viewform?usp=dialog -->
+
+
 
 
