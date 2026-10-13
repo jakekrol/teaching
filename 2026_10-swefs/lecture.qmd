@@ -77,6 +77,19 @@ You are probably already writing library code
 
 ![](./img/library-tree-diagram.png){fig-align="center"}
 
+## Library building tools
+
+:::{.center}
+
+<br>
+
+UV, Twine, Pip, etc.
+
+
+![](./img/uv.png){fig-align="center"}
+
+:::
+
 ## Table of contents
 
 <br>
@@ -642,7 +655,7 @@ Requirements
 
 
 
-## FCQ
+## FCQ class 1
 
 
 ![](./img/qrcode.png){fig-align="center"}
