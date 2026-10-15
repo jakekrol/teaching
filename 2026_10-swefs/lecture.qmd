@@ -107,7 +107,7 @@ UV, Twine, Pip, etc.
 <br>
 
 :::{.center}
-Arrays & random number generation
+Arrays, random number generation, & numerical analysis
 :::
 
 <br>
@@ -130,6 +130,21 @@ np.save("data.npy", x) # write, use npz for multiple arrays
 np.load("data.npy") # read
 ```
 
+## Poisson approximation of binomial
+
+$$
+p(x;\lambda) = \frac{\lambda^x e^{-\lambda}}{x!}
+$$
+
+$$
+p(x;n,p) = \binom{n}{x} p^x (1-p)^{n-x}
+$$
+
+$$
+\text{if } (\lambda = n\cdot p \text{ } \land \uparrow n \text{ }\land \downarrow p) \rightarrow p(x; \lambda)  \approx p(x;n,p)
+$$
+
+
 
 ## Comparing vectors
 
@@ -138,27 +153,31 @@ np.load("data.npy") # read
 
 
 ``` python
-import numpy as np; import pandas as pd; np.random.seed(0)
+import numpy as np; import pandas as pd; import matplotlib.pyplot as plt; np.random.seed(0)
 m=10000
 def distance(a,b):
     d_euc = np.linalg.norm(a - b, ord=None) # 2-norm: preserves units (e.g., meters)
-    d_cos = 1 - ( np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)) ) # cosine: unit less. normalized to [0,1].
+    d_cos = 1 - ( np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)) ) # cosine: unit less. normalized to [0,2].
     d_inf = np.linalg.norm(a-b,ord=np.inf) # infinity norm: preserves units. worst case analysis
     return d_euc, d_cos, d_inf
 ### weak approximation (n small, pr large)
 trials1,pr_success1 = (50,0.90)
-a = np.random.binomial(n=trials1,p=pr_success1,size=m) # is sunny CO day? independence assumed
+a_weak = np.random.binomial(n=trials1,p=pr_success1,size=m) # is sunny CO day? independence assumed
 lam1 = trials1 * pr_success1
-b = np.random.poisson(lam=lam1,size=m)
-weak = distance(a,b)
+b_weak = np.random.poisson(lam=lam1,size=m)
+weak = distance(a_weak,b_weak)
 ### strong approximation (n large, pr small)
 trials2,pr_success2 = (100_000_000, 0.001) # does experiment succeed?
-a = np.random.binomial(n=trials2,p=pr_success2,size=m)
+a_strong = np.random.binomial(n=trials2,p=pr_success2,size=m)
 lam2 = trials2 * pr_success2
-b = np.random.poisson(lam=lam2,size=m)
-strong = distance(a,b)
+b_strong = np.random.poisson(lam=lam2,size=m)
+strong = distance(a_strong,b_strong)
 df = pd.DataFrame({'Weak': weak, 'Strong': strong}); df.index = ['Euc', 'Cos', 'Inf']; df = df.T
-df['n'] = [trials1, trials2]; df['p'] = [pr_success1, pr_success2]; df['lamba'] = [lam1,lam2]
+df['n'] = [trials1, trials2]; df['p'] = [pr_success1, pr_success2]; df['lambda'] = [lam1,lam2]
+fig,ax=plt.subplots(nrows=1,ncols=2,figsize=(9,4))
+ax[0].hist(a_weak,alpha=0.5,color='blue',bins=30); ax[0].hist(b_weak,alpha=0.5,color='yellow',bins=30); ax[0].spines['top'].set_visible(False); ax[0].spines['right'].set_visible(False); ax[0].set_title("Weak",loc="left")
+ax[1].hist(a_strong,alpha=0.5,color='blue',bins=30); ax[1].hist(b_strong,alpha=0.5,color='yellow',bins=30); ax[1].spines['top'].set_visible(False); ax[1].spines['right'].set_visible(False); ax[1].set_title("Strong",loc="left")
+plt.tight_layout(); plt.savefig("img/poission_approx_binom-hist.png"); plt.close()
 ```
 
 |        | Euc      | Cos      | Inf    | n         | p     | lambda |
@@ -168,13 +187,19 @@ df['n'] = [trials1, trials2]; df['p'] = [pr_success1, pr_success2]; df['lamba'] 
 :::
 :::
 
+## Numerical experiment
+
+<br>
+
+![](./img/poission_approx_binom-hist.png){fig-align="center"}
+
 
 ## Distance metrics
 
 <br>
 
 $$
-L_2=\sqrt{(a_1-b_1)^2 + (a_1-b_1)^2 + \ldots + (a_n-b_n)^2} = ||a-b||_2
+L_2=\sqrt{(a_1-b_1)^2 + (a_2-b_2)^2 + \ldots + (a_n-b_n)^2} = ||a-b||_2
 $$
 
 $$
@@ -196,20 +221,6 @@ Vector distances are common in optimization
 | $L_{\infty}$ | Yes | Worst case analysis (e.g., quality control) |
 | Cosine   | No | Normalized similarity (e.g., embeddings of images) |
 :::
-
-## Poisson approximation of binomial
-
-$$
-p(x;\lambda) = \frac{\lambda^x e^{-\lambda}}{x!}
-$$
-
-$$
-p(x;n,p) = \binom{n}{x} p^x (1-p)^{n-x}
-$$
-
-$$
-\text{if } (\lambda = n\cdot p \text{} \land \uparrow n \text{ }\land \downarrow p) \rightarrow p(x; \lambda)  \approx p(x;n,p)
-$$
 
 
 ## Pandas
@@ -638,11 +649,13 @@ net = Net()
 
 [Kaggle breast-cancer-gene-expression-profiles-metabric](https://www.kaggle.com/datasets/raghadalharbi/breast-cancer-gene-expression-profiles-metabric)
 
+Or, use hugging face model and dataset
+
 <br>
 
-Requirements
-
 :::{.small}
+
+Email 1 slide/image to jacob.krol@colorado.edu by 1:40p Thu.
 
 - Hypothesis (1 sentence)
 - Use classification, regression, or clustering to test hypothesis
@@ -661,6 +674,53 @@ Requirements
 ![](./img/qrcode.png){fig-align="center"}
 
 <!-- https://docs.google.com/forms/d/e/1FAIpQLScYp0mvAUwnOR4WXg4QdHWcE4ewgCt7LmiVNI3tjQvidQF9mg/viewform?usp=dialog -->
+
+## In-class assignment
+
+<br>
+
+<br>
+
+
+:::{.center}
+:::{.small}
+
+Workflow: hypothesis > approach > code > analysis
+
+- Figure 1: data exploration (e.g., show high variance genes)
+- Figure 2: model selection (e.g., which model best predicts Y from X)
+- Figure 3: model inspection (e.g., model coefficients or feature importance)
+
+<br>
+
+Example code: https://github.com/jakekrol/teaching/blob/main/2026_10-swefs/src/breast-cancer-rna-analysis.py
+
+:::
+:::
+
+## Example
+
+:::{.center}
+:::{.small}
+Hypothesis: gene expression can classify ER+/- breast cancer cases
+
+<br>
+
+![](./img/breast-cancer-rna-analysis.png){fig-align="center"}
+:::
+:::
+
+## Corroborating literature
+
+<br>
+
+:::{.center}
+"GATA3 is a transcription factor used as a breast cancer marker because it is strongly linked to estrogen receptor (ER)-positive tumors and luminal subtypes, where higher expression often indicates better prognosis. Studies show GATA3 is detected in about 32% of invasive breast cancers and is almost exclusively found in ER-positive cases, correlating with lower tumor grade and improved survival outcomes."
+:::
+
+## FCQ class 2
+
+![](./img/fcq2.png){fig-align="center"}
 
 
 
